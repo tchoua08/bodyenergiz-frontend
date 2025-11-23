@@ -1,0 +1,57 @@
+name: bodyenergiz
+description: BodyEnergiz - Measure and boost your body energy
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.2.1
+  flutter_secure_storage: ^8.0.0
+  provider: ^6.1.2
+  percent_indicator: ^4.2.4
+  fl_chart: ^0.68.0
+  sensors_plus: ^5.0.1
+  permission_handler: ^11.3.1
+  url_launcher: ^6.3.0
+  cupertino_icons: ^1.0.8
+  firebase_core: ^3.5.0
+  firebase_auth: ^5.2.0
+  cloud_firestore: ^5.1.0
+  image_picker: ^1.0.7
+  firebase_storage: ^12.1.0
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  camera: ^0.11.2+1
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.7
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "images/logo.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "images/logo.png"
+
+flutter_native_splash:
+  color: "#FFFFFF"   # fond blanc ou ton thème
+  image: images/logo.png
+  android: true
+  ios: true
+  android_gravity: center
+  ios_content_mode: center
+
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - images/logo.png
