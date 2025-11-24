@@ -1,41 +1,12 @@
-import 'dart:io';
-import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
-class ApiClient {
-  late Dio dio;
-  final storage = const FlutterSecureStorage();
-
-  ApiClient() {
-    dio = Dio(
-      BaseOptions(
-        baseUrl: "http://127.0.0.1:3000/api",
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {"Content-Type": "application/json"},
-      ),
-    );
-
-    // Attach token to every request
-    dio.interceptors.add(
-      InterceptorsWrapper(onRequest: (options, handler) async {
-        final token = await storage.read(key: 'jwt_token');
-        if (token != null) {
-          options.headers["Authorization"] = "Bearer $token";
-        }
-        return handler.next(options);
-      }),
-    );
-  }
-}
+import 'api_client.dart';
 
 class AuthRepository {
   final ApiClient _api = ApiClient();
 
   // ----------------------------------------------------------
-  // SAVE TOKENS
+  // Save tokens to secure storage
   // ----------------------------------------------------------
   Future<void> _saveTokens(String? token, String? refreshToken) async {
     if (token != null) {
@@ -54,14 +25,21 @@ class AuthRepository {
     try {
       final res = await _api.dio.post(
         "/auth/register",
-        data: {"name": name, "email": email, "password": password},
+        data: {
+          "name": name,
+          "email": email,
+          "password": password,
+        },
       );
 
       return {"ok": true, "data": res.data};
-    } on DioError catch (e) {
+    } on DioException catch (e) {
       return {
         "ok": false,
-        "error": e.response?.data["message"] ?? e.message,
+        "error": e.response?.data["message"] ??
+            e.response?.data ??
+            e.message ??
+            "Erreur inconnue"
       };
     }
   }
@@ -73,77 +51,108 @@ class AuthRepository {
     try {
       final res = await _api.dio.post(
         "/auth/login",
-        data: {"email": email, "password": password},
+        data: {
+          "email": email,
+          "password": password,
+        },
       );
 
       final data = res.data;
-      await _saveTokens(data["token"], data["refreshToken"]);
+      final token = data["token"];
+      final refreshToken = data["refreshToken"];
+
+      await _saveTokens(token, refreshToken);
 
       return {"ok": true, "data": data};
-    } on DioError catch (e) {
-      return {"ok": false, "error": e.response?.data["message"] ?? e.message};
+    } on DioException catch (e) {
+      return {
+        "ok": false,
+        "error": e.response?.data["message"] ?? e.message
+      };
     }
   }
 
   // ----------------------------------------------------------
-  // GET USER DETAILS (from JWT)
+  // GET AUTHENTICATED USER
   // ----------------------------------------------------------
-  Future<dynamic> getMe() async {
+  Future<Map<String, dynamic>> getMe() async {
     try {
       final res = await _api.dio.get("/auth/me");
-      return res.data;
-    } catch (e) {
-      return null;
+
+      return {"ok": true, "data": res.data};
+    } on DioException catch (e) {
+      return {
+        "ok": false,
+        "error": e.response?.data ?? e.message
+      };
     }
   }
+
   // ----------------------------------------------------------
-// FORGOT PASSWORD
-// ----------------------------------------------------------
-Future<Map<String, dynamic>> forgotPassword(String email) async {
-  try {
-    final res = await _api.dio.post(
-      "/auth/forgot-password",
-      data: {"email": email},
-    );
+  // FORGOT PASSWORD (email link)
+  // ----------------------------------------------------------
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final res = await _api.dio.post(
+        "/auth/forgot-password",
+        data: {"email": email},
+      );
 
-    return {"ok": true, "data": res.data};
-  } on DioError catch (e) {
-    return {
-      "ok": false,
-      "error": e.response?.data["message"] ??
-          e.message ??
-          "Erreur inconnue",
-    };
-  }
-}
-
- // ---------------------------------------------------------- 
- // Reset password via JWT (authenticated user) 
- // ---------------------------------------------------------- 
- Future<Map<String, dynamic>> resetPassword(String newPassword) async { 
-   try { 
-    final res = await _api.dio.post( 
-      "/auth/reset-password",
-       data: {"password": newPassword}, 
-       ); 
-
-    return {"ok": true, "data": res.data}; 
-    } on DioError catch (e) { 
-    return {"ok": false, "error": e.response?.data ?? e.message}; 
-    } 
-    
+      return {"ok": true, "data": res.data};
+    } on DioException catch (e) {
+      return {
+        "ok": false,
+        "error": e.response?.data["message"] ??
+            e.message ??
+            "Erreur inconnue"
+      };
+    }
   }
 
   // ----------------------------------------------------------
-  // CHANGE PASSWORD
+  // RESET PASSWORD (authenticated user)
   // ----------------------------------------------------------
-  Future<Map<String, dynamic>> changePassword({
-    required String oldPassword,
-    required String newPassword,
-  }) async {
+  Future<Map<String, dynamic>> resetPassword(String newPassword) async {
+    try {
+      final res = await _api.dio.post(
+        "/auth/reset-password",
+        data: {"password": newPassword},
+      );
+
+      return {"ok": true, "data": res.data};
+    } on DioException catch (e) {
+      return {"ok": false, "error": e.response?.data ?? e.message};
+    }
+  }
+
+  // ----------------------------------------------------------
+  // RESET PASSWORD via token (forgot link)
+  // ----------------------------------------------------------
+  Future<Map<String, dynamic>> resetPasswordWithToken(
+      String token, String newPassword) async {
+    try {
+      final res = await _api.dio.post(
+        "/auth/reset-password/$token",
+        data: {"password": newPassword},
+      );
+
+      return {"ok": true, "data": res.data};
+    } on DioException catch (e) {
+      return {
+        "ok": false,
+        "error": e.response?.data["message"] ?? e.message
+      };
+    }
+  }
+
+  // ----------------------------------------------------------
+  // CHANGE PASSWORD (user authenticated)
+  // ----------------------------------------------------------
+  Future<Map<String, dynamic>> changePassword(
+      String oldPassword, String newPassword) async {
     try {
       final res = await _api.dio.put(
-        "/auth/change-password",
+        "/user/change-password",
         data: {
           "oldPassword": oldPassword,
           "newPassword": newPassword,
@@ -151,66 +160,77 @@ Future<Map<String, dynamic>> forgotPassword(String email) async {
       );
 
       return {"ok": true, "data": res.data};
-    } on DioError catch (e) {
+    } on DioException catch (e) {
       return {
         "ok": false,
-        "error": e.response?.data["message"] ?? e.message,
+        "error": e.response?.data["message"] ?? e.message
       };
     }
   }
 
   // ----------------------------------------------------------
-  // UPLOAD AVATAR (multipart)
+  // UPLOAD PHOTO (avatar)
   // ----------------------------------------------------------
-  Future<String?> uploadAvatar(File file) async {
+  Future<Map<String, dynamic>> uploadAvatar(String filePath) async {
     try {
-      final token = await _api.storage.read(key: "jwt_token");
-      if (token == null) return null;
+      final form = FormData.fromMap({
+        "avatar": await MultipartFile.fromFile(filePath),
+      });
 
-      final request = http.MultipartRequest(
-        "POST",
-        Uri.parse("http://127.0.0.1:3000/api/auth/upload-avatar"),
+      final res = await _api.dio.post(
+        "/user/upload-avatar",
+        data: form,
       );
 
-      request.headers["Authorization"] = "Bearer $token";
-      request.files.add(await http.MultipartFile.fromPath('avatar', file.path));
-
-      final response = await request.send();
-      final body = await response.stream.bytesToString();
-      final data = jsonDecode(body);
-
-      if (data["ok"] == true) {
-        return data["url"];
-      }
-
-      return null;
-    } catch (e) {
-      return null;
+      return {"ok": true, "data": res.data};
+    } on DioException catch (e) {
+      return {"ok": false, "error": e.response?.data ?? e.message};
     }
   }
 
   // ----------------------------------------------------------
-  // UPDATE PROFILE (name, avatar)
+  // UPDATE PROFILE (name and photo)
   // ----------------------------------------------------------
-  Future<Map<String, dynamic>> updateProfile({
-    String? name,
-    String? avatar,
-  }) async {
+  Future<Map<String, dynamic>> updateProfile(
+      {String? name, String? photoUrl}) async {
     try {
       final res = await _api.dio.put(
-        "/auth/update-profile",
+        "/user/update",
         data: {
           if (name != null) "name": name,
-          if (avatar != null) "avatar": avatar,
+          if (photoUrl != null) "photoUrl": photoUrl,
         },
       );
 
       return {"ok": true, "data": res.data};
-    } on DioError catch (e) {
-      return {
-        "ok": false,
-        "error": e.response?.data["message"] ?? e.message,
-      };
+    } on DioException catch (e) {
+      return {"ok": false, "error": e.response?.data ?? e.message};
+    }
+  }
+
+  // ----------------------------------------------------------
+  // REFRESH TOKEN
+  // ----------------------------------------------------------
+  Future<Map<String, dynamic>> refresh() async {
+    try {
+      final rt = await _api.storage.read(key: "refresh_token");
+      if (rt == null) {
+        return {"ok": false, "error": "No refresh token"};
+      }
+
+      final res = await _api.dio.post(
+        "/auth/refresh",
+        data: {"refreshToken": rt},
+      );
+
+      final token = res.data["token"];
+      final newRefresh = res.data["refreshToken"];
+
+      await _saveTokens(token, newRefresh);
+
+      return {"ok": true, "data": res.data};
+    } on DioException catch (e) {
+      return {"ok": false, "error": e.response?.data ?? e.message};
     }
   }
 
@@ -218,9 +238,9 @@ Future<Map<String, dynamic>> forgotPassword(String email) async {
   // LOGOUT
   // ----------------------------------------------------------
   Future<void> logout() async {
-    // Optionally notify backend
     try {
       final rt = await _api.storage.read(key: "refresh_token");
+
       if (rt != null) {
         await _api.dio.post("/auth/logout", data: {"refreshToken": rt});
       }
@@ -229,6 +249,58 @@ Future<Map<String, dynamic>> forgotPassword(String email) async {
     await _api.storage.delete(key: "jwt_token");
     await _api.storage.delete(key: "refresh_token");
   }
+
+  // ----------------------------------------------------------
+  // CLEAR ALL TOKENS
+  // ----------------------------------------------------------
+  Future<void> clearStorage() async {
+    await _api.storage.deleteAll();
+  }
+
+  // ----------------------------------------------------------
+// GET SUBSCRIPTION STATUS
+// ----------------------------------------------------------
+Future<Map<String, dynamic>> getSubscriptionStatus() async {
+  try {
+    final res = await _api.dio.get("/subscription/status");
+    return {"ok": true, "data": res.data};
+  } on DioException catch (e) {
+    return {"ok": false, "error": e.response?.data ?? e.message};
+  }
+}
+
+// ----------------------------------------------------------
+// CREATE CHECKOUT SESSION (Stripe)
+// ----------------------------------------------------------
+Future<Map<String, dynamic>> createCheckoutSession({
+  required String plan,
+}) async {
+  try {
+    final res = await _api.dio.post(
+      "/subscription/checkout",
+      data: {"plan": plan}, // premium | premium_plus
+    );
+
+    return {"ok": true, "data": res.data};
+  } on DioException catch (e) {
+    return {"ok": false, "error": e.response?.data ?? e.message};
+  }
+}
+
+// ----------------------------------------------------------
+// CANCEL SUBSCRIPTION
+// ----------------------------------------------------------
+Future<Map<String, dynamic>> cancelSubscription() async {
+  try {
+    final res = await _api.dio.post("/subscription/cancel");
+    return {"ok": true, "data": res.data};
+  } on DioException catch (e) {
+    return {"ok": false, "error": e.response?.data ?? e.message};
+  }
+}
+
+
+
 }
 
 

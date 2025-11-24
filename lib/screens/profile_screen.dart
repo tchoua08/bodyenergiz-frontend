@@ -1,151 +1,156 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 import '../services/auth_repository.dart';
+import '../widgets/premium_gate.dart';
+import 'subscription_screen.dart';
 import 'edit_profile_screen.dart';
-import 'privacy_policy_screen.dart';
-import 'terms_screen.dart';
 import 'history_screen.dart';
 import './auth/login_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
-  final AuthRepository _auth = AuthRepository();
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
 
-  ProfileScreen({super.key});
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final AuthRepository _auth = AuthRepository();
+  Map<String, dynamic>? user;
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final r = await _auth.getMe();
+    if (r["ok"]) {
+      setState(() {
+        user = r["data"];
+        loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Profil"),
+        title: const Text("Mon Profil"),
         backgroundColor: AppTheme.primaryTeal,
       ),
       body: Container(
         decoration: AppTheme.mainGradient,
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        child: FutureBuilder(
-          future: _auth.getMe(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              );
-            }
+        height: double.infinity,
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
 
-            final Map<String, dynamic> user = snapshot.data as Map<String, dynamic>;
+            // Avatar
+            CircleAvatar(
+              radius: 45,
+              backgroundColor: Colors.white,
+              backgroundImage:
+                  user!["photoUrl"] != null ? NetworkImage(user!["photoUrl"]) : null,
+              child: user!["photoUrl"] == null
+                  ? const Icon(Icons.person, size: 45, color: Colors.black54)
+                  : null,
+            ),
 
-            return Column(
-              children: [
-                // ---- AVATAR ----
-                const SizedBox(height: 10),
-                CircleAvatar(
-                  radius: 45,
-                  backgroundColor: Colors.white,
-                  backgroundImage: user['avatar'] != null
-                      ? NetworkImage(user['avatar'] as String)
-                      : const AssetImage("images/logo.png") as ImageProvider,
-                ),
-                const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-                // ---- NAME ----
-                Text(
-                  (user['name'] ?? '').toString(),
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                ),
+            Text(
+              user!["name"] ?? "Utilisateur",
+              style: const TextStyle(color: Colors.white, fontSize: 20),
+            ),
 
-                const SizedBox(height: 30),
+            const SizedBox(height: 25),
 
-                // -------- MENU --------
-                _menuTile(
-                  icon: Icons.person,
-                  title: "Modifier mon profil",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                    );
-                  },
-                ),
+            // Buttons list
+            _menuItem(
+              icon: Icons.edit,
+              text: "Modifier mon profil",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                );
+              },
+            ),
 
-                _menuTile(
-                    icon: Icons.history,
-                    title: "Historique des scans",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                      );
-                    }),
+            // HISTORY (protected)
+            PremiumGate(
+              child: _menuItem(
+                icon: Icons.history,
+                text: "Historique des scans",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                  );
+                },
+              ),
+            ),
 
-                _menuTile(
-                  icon: Icons.privacy_tip,
-                  title: "Politique de confidentialité",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
-                    );
-                  },
-                ),
+            _menuItem(
+              icon: Icons.workspace_premium,
+              text: "Devenir Premium",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+                );
+              },
+            ),
 
-                _menuTile(
-                  icon: Icons.description,
-                  title: "Conditions d’utilisation",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const TermsScreen()),
-                    );
-                  },
-                ),
+            const Spacer(),
 
-                const Spacer(),
+            // Logout
+            AppTheme.gradientButton(
+              text: "Se déconnecter",
+              onPressed: () async {
+                await _auth.logout();
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (_) => false,
+                  );
+                }
+              },
+            ),
 
-                // ---- LOGOUT ----
-              // Déconnexion
-                AppTheme.gradientButton(
-                  text: "Se déconnecter",
-                  onPressed: () async {
-                    await _auth.logout();
-
-                    if (context.mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const LoginScreen(),
-                        ),
-                        (route) => false,
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(height: 20),
-              ],
-            );
-          },
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
   }
 
-  // -------- MENU TILE WIDGET --------
-  Widget _menuTile({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
+  Widget _menuItem({required IconData icon, required String text, required VoidCallback onTap}) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: ListTile(
         leading: Icon(icon, color: Colors.white),
-        title: Text(title,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-        trailing: const Icon(Icons.chevron_right, color: Colors.white70),
+        title: Text(
+          text,
+          style: const TextStyle(color: Colors.white),
+        ),
         onTap: onTap,
       ),
     );

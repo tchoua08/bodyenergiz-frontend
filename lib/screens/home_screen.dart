@@ -1,36 +1,61 @@
 import 'package:flutter/material.dart';
-import '../widgets/energy_gauge.dart';
-import '../models/energy_result.dart';
-import 'aura_scan_screen.dart';
-import 'energy_detail_page.dart';
 import '../utils/theme.dart';
+import '../widgets/premium_gate.dart';
+import 'aura_scan_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-class _HomeScreenState extends State<HomeScreen> {
-  EnergyResult? last;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Accueil'), backgroundColor: AppTheme.primaryTeal),
+      appBar: AppBar(
+        title: const Text("BodyEnergiz"),
+        backgroundColor: AppTheme.primaryTeal,
+      ),
       body: Container(
-        decoration: const BoxDecoration(gradient: LinearGradient(colors: [AppTheme.primaryTeal, AppTheme.darkBlue], begin: Alignment.topLeft, end: Alignment.bottomRight)),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(children: [
-            EnergyGauge(score: last?.energyScore ?? 0.0),
-            const SizedBox(height: 12),
-            ElevatedButton(onPressed: () async {
-              final res = await Navigator.push<EnergyResult?>(context, MaterialPageRoute(builder: (_) => const AuraScanScreen()));
-              if (res != null) setState(() => last = res);
-            }, child: const Text('Scanner l\'aura')),
-            const SizedBox(height: 8),
-            if (last != null)
-              ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EnergyDetailPage(result: last!))), child: const Text('Voir détails')),
-          ]),
+        decoration: AppTheme.mainGradient,
+        width: double.infinity,
+        height: double.infinity,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+
+            // Logo
+            Image.asset("assets/images/logo.png", height: 110),
+
+            const SizedBox(height: 20),
+
+            const Text(
+              "Analyse ton aura et mesure ton énergie vitale",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+
+            const SizedBox(height: 30),
+
+            // PROTECTED BUTTON
+            PremiumGate(
+              child: AppTheme.gradientButton(
+                text: "Scanner mon aura",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AuraScanScreen()),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            const Text(
+              "Place ton doigt sur la caméra arrière pour une mesure PPG.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
         ),
       ),
     );

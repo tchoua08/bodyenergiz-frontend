@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/energy_result.dart';
 import '../utils/theme.dart';
+import 'personalized_advice_screen.dart';
 
 class EnergyDetailPage extends StatelessWidget {
   final EnergyResult result;
@@ -11,84 +12,67 @@ class EnergyDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Détails de l'énergie"),
+        title: const Text("Analyse de l'Aura"),
         backgroundColor: AppTheme.primaryTeal,
       ),
       body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppTheme.primaryTeal, AppTheme.darkBlue],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(18.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
+        decoration: AppTheme.mainGradient,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 15),
 
-              Text("Aura détectée",
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold)),
-
-              const SizedBox(height: 10),
-
-              Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.08),
-                  boxShadow: [
-                    BoxShadow(
-                        color: AppTheme.colorFromAura(result.auraColor)
-                            .withOpacity(0.6),
-                        blurRadius: 25,
-                        spreadRadius: 10)
-                  ],
+            // AURA ICON
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.colorFromAura(result.auraColor).withOpacity(.3),
+                border: Border.all(
+                  color: AppTheme.colorFromAura(result.auraColor),
+                  width: 4,
                 ),
-                child: Icon(Icons.bolt,
-                    color: AppTheme.colorFromAura(result.auraColor),
-                    size: 70),
               ),
+              child: Icon(Icons.energy_savings_leaf,
+                  color: AppTheme.colorFromAura(result.auraColor), size: 70),
+            ),
 
-              const SizedBox(height: 25),
+            const SizedBox(height: 20),
 
-              _metric("Battements/minute (BPM)", result.bpm),
-              _metric("Mouvement / vibration", result.movement),
-              _metric("Score d'énergie", result.energyScore),
+            Text(
+              "Énergie Vitale : ${result.energyScore.toStringAsFixed(1)}%",
+              style: const TextStyle(color: Colors.white, fontSize: 22),
+            ),
 
-              const SizedBox(height: 40),
+            const SizedBox(height: 12),
 
-              AppTheme.gradientButton(
-                text: "Retour",
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+            Text(
+              "BPM : ${result.bpm.toStringAsFixed(1)}",
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+
+            Text(
+              "Mouvement : ${result.movement.toStringAsFixed(2)}",
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+
+            const Spacer(),
+
+           AppTheme.gradientButton(
+            text: "Conseils personnalisés",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PersonalizedAdviceScreen(result: result),
+                ),
+              );
+            },
           ),
+            const SizedBox(height: 10),
+          ],
         ),
-      ),
-    );
-  }
-
-  Widget _metric(String title, double value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        children: [
-          Text(title,
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text(value.toStringAsFixed(1),
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-        ],
       ),
     );
   }

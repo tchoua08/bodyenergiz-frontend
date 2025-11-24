@@ -27,6 +27,11 @@ dependencies:
     sdk: flutter
   intl: any
   camera: ^0.11.2+1
+  flutter_local_notifications: ^17.1.2  
+  just_audio: ^0.10.5
+  flutter_tts: ^4.2.3
+  timezone: ^0.9.3
+  audioplayers: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

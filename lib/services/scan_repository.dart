@@ -22,7 +22,7 @@ class ScanRepository {
     }
   }
 
-  Future<Map<String, dynamic>> history() async {
+  Future<Map<String, dynamic>> getHistory() async {
     try {
       final res = await _api.dio.get('/scan/history');
       return {'ok': true, 'data': res.data};
