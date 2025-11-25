@@ -23,7 +23,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 10),
 
             // Logo
-            Image.asset("assets/images/logo.png", height: 110),
+            Image.asset("images/logo.png", height: 110),
 
             const SizedBox(height: 20),
 

@@ -44,106 +44,142 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Mon Profil"),
-        backgroundColor: AppTheme.primaryTeal,
-      ),
       body: Container(
         decoration: AppTheme.mainGradient,
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
 
-            // Avatar
-            CircleAvatar(
-              radius: 45,
-              backgroundColor: Colors.white,
-              backgroundImage:
-                  user!["photoUrl"] != null ? NetworkImage(user!["photoUrl"]) : null,
-              child: user!["photoUrl"] == null
-                  ? const Icon(Icons.person, size: 45, color: Colors.black54)
-                  : null,
-            ),
+                  // ---- FULL PAGE ----
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // ----- HEADER -----
+                      const SizedBox(height: 20),
+                      const Text(
+                        "Mon Profil",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 25),
 
-            const SizedBox(height: 12),
+                      // ----- AVATAR -----
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.white,
+                        backgroundImage: user!["photoUrl"] != null
+                            ? NetworkImage(user!["photoUrl"])
+                            : null,
+                        child: user!["photoUrl"] == null
+                            ? const Icon(Icons.person,
+                                size: 50, color: Colors.black54)
+                            : null,
+                      ),
 
-            Text(
-              user!["name"] ?? "Utilisateur",
-              style: const TextStyle(color: Colors.white, fontSize: 20),
-            ),
+                      const SizedBox(height: 12),
 
-            const SizedBox(height: 25),
+                      // ----- USER NAME -----
+                      Text(
+                        user!["name"] ?? "Utilisateur",
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500),
+                      ),
 
-            // Buttons list
-            _menuItem(
-              icon: Icons.edit,
-              text: "Modifier mon profil",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                );
-              },
-            ),
+                      const SizedBox(height: 30),
 
-            // HISTORY (protected)
-            PremiumGate(
-              child: _menuItem(
-                icon: Icons.history,
-                text: "Historique des scans",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                  );
-                },
-              ),
-            ),
+                      // ----- EDIT PROFILE -----
+                      _menuItem(
+                        icon: Icons.edit,
+                        text: "Modifier mon profil",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const EditProfileScreen()),
+                          );
+                        },
+                      ),
 
-            _menuItem(
-              icon: Icons.workspace_premium,
-              text: "Devenir Premium",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
-                );
-              },
-            ),
+                      // ----- HISTORY (PREMIUM) -----
+                      PremiumGate(
+                        child: _menuItem(
+                          icon: Icons.history,
+                          text: "Historique des scans",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const HistoryScreen()),
+                            );
+                          },
+                        ),
+                      ),
 
-            const Spacer(),
+                      // ----- SUBSCRIPTION -----
+                      _menuItem(
+                        icon: Icons.workspace_premium,
+                        text: "Devenir Premium",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SubscriptionScreen()),
+                          );
+                        },
+                      ),
 
-            // Logout
-            AppTheme.gradientButton(
-              text: "Se déconnecter",
-              onPressed: () async {
-                await _auth.logout();
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (_) => false,
-                  );
-                }
-              },
-            ),
+                      const SizedBox(height: 30),
+                      // ----- LOGOUT BUTTON -----
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10),
+                        child: AppTheme.gradientButton(
+                          text: "Se déconnecter",
+                          onPressed: () async {
+                            await _auth.logout();
+                            if (mounted) {
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const LoginScreen()),
+                                (_) => false,
+                              );
+                            }
+                          },
+                        ),
+                      ),
 
-            const SizedBox(height: 20),
-          ],
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _menuItem({required IconData icon, required String text, required VoidCallback onTap}) {
+  // ------------------------- MENU ITEM -------------------------
+  Widget _menuItem(
+      {required IconData icon,
+      required String text,
+      required VoidCallback onTap}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
       ),
       child: ListTile(
         leading: Icon(icon, color: Colors.white),
@@ -151,6 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           text,
           style: const TextStyle(color: Colors.white),
         ),
+        trailing: const Icon(Icons.chevron_right, color: Colors.white70),
         onTap: onTap,
       ),
     );

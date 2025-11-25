@@ -22,7 +22,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   File? _imageFile;
   bool loading = false;
-
   Map<String, dynamic>? user;
 
   @override
@@ -46,9 +45,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final picked = await picker.pickImage(source: ImageSource.gallery);
 
     if (picked != null) {
-      setState(() {
-        _imageFile = File(picked.path);
-      });
+      setState(() => _imageFile = File(picked.path));
     }
   }
 
@@ -57,12 +54,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     String? avatarUrl;
 
-    // -------------------------
-    // Upload avatar si présent
-    // -------------------------
+    // Upload avatar
     if (_imageFile != null) {
       final res = await _auth.uploadAvatar(_imageFile!.path);
-
       if (res["ok"]) {
         avatarUrl = res["data"]["photoUrl"];
       } else {
@@ -72,9 +66,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
 
-    // -------------------------
-    // Update profile (name + avatar)
-    // -------------------------
+    // Update profile
     final updateRes = await _auth.updateProfile(
       name: _name.text,
       photoUrl: avatarUrl,
@@ -88,9 +80,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    // -------------------------
-    // Change password si rempli
-    // -------------------------
+    // Change password if needed
     if (_oldPassword.text.isNotEmpty && _newPassword.text.isNotEmpty) {
       final passRes = await _auth.changePassword(
         _oldPassword.text,
@@ -110,7 +100,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       const SnackBar(content: Text("Profil mis à jour avec succès !")),
     );
 
-    if (context.mounted) {
+    if (mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const ProfileScreen()),
@@ -121,105 +111,111 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // --------------------------
-      // APPBAR AVEC RETOUR
-      // --------------------------
       appBar: AppBar(
         title: const Text("Modifier mon profil"),
         backgroundColor: AppTheme.primaryTeal,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            );
+            Navigator.pop(context);
           },
         ),
       ),
 
-      // --------------------------
-      // MAIN CONTENT
-      // --------------------------
+      // ---- FULL-PAGE GRADIENT FIX ----
       body: Container(
         decoration: AppTheme.mainGradient,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
 
-              // --------------------------
-              // AVATAR
-              // --------------------------
-              GestureDetector(
-                onTap: _pickImage,
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.white.withOpacity(.2),
-                  backgroundImage: _imageFile != null
-                      ? FileImage(_imageFile!)
-                      : (user?["photoUrl"] != null
-                          ? NetworkImage(user!["photoUrl"])
-                          : const AssetImage("images/logo.png")) as ImageProvider,
-                  child: Container(
-                    alignment: Alignment.bottomRight,
-                    child: Container(
-                      padding: const EdgeInsets.all(5),
-                      decoration: const BoxDecoration(
-                        color: AppTheme.primaryTeal,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.camera_alt, color: Colors.white),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+
+                        // --------------------------
+                        // AVATAR
+                        // --------------------------
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.white.withOpacity(.2),
+                            backgroundImage: _imageFile != null
+                                ? FileImage(_imageFile!)
+                                : (user?["photoUrl"] != null
+                                    ? NetworkImage(user!["photoUrl"])
+                                    : const AssetImage("images/logo.png"))
+                                as ImageProvider,
+                            child: Container(
+                              alignment: Alignment.bottomRight,
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.primaryTeal,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt,
+                                    color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        // --------------------------
+                        // NAME FIELD
+                        // --------------------------
+                        TextField(
+                          controller: _name,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _input("Nom complet"),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // --------------------------
+                        // PASSWORDS
+                        // --------------------------
+                        TextField(
+                          controller: _oldPassword,
+                          obscureText: true,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _input("Ancien mot de passe"),
+                        ),
+
+                        const SizedBox(height: 15),
+
+                        TextField(
+                          controller: _newPassword,
+                          obscureText: true,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _input("Nouveau mot de passe"),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        // --------------------------
+                        // SAVE BUTTON
+                        // --------------------------
+                        AppTheme.gradientButton(
+                          text: loading ? "Patiente..." : "Enregistrer",
+                          onPressed: loading ? null : _saveChanges,
+                        ),
+
+                        const SizedBox(height: 40),
+                      ],
                     ),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // --------------------------
-              // NAME FIELD
-              // --------------------------
-              TextField(
-                controller: _name,
-                style: const TextStyle(color: Colors.white),
-                decoration: _input("Nom complet"),
-              ),
-
-              const SizedBox(height: 20),
-
-              // --------------------------
-              // PASSWORD CHANGE FIELDS
-              // --------------------------
-              TextField(
-                controller: _oldPassword,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: _input("Ancien mot de passe"),
-              ),
-
-              const SizedBox(height: 15),
-
-              TextField(
-                controller: _newPassword,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: _input("Nouveau mot de passe"),
-              ),
-
-              const SizedBox(height: 30),
-
-              // --------------------------
-              // SAVE BUTTON
-              // --------------------------
-              AppTheme.gradientButton(
-                text: loading ? "Patiente..." : "Enregistrer",
-                onPressed: loading ? null : _saveChanges,
-              ),
-
-              const SizedBox(height: 40),
-            ],
+              );
+            },
           ),
         ),
       ),

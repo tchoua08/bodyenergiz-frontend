@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_repository.dart';
 import '../utils/theme.dart';
+import 'profile_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -15,8 +16,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool loading = true;
   Map<String, dynamic>? subscription;
 
-  // PriceIDs Stripe (à adapter à ton backend)
-  final String premiumPriceId = "price_premium_299";      // 2.99€
+  // PriceIDs Stripe
+  final String premiumPriceId = "price_premium_299";          // 2.99€
   final String premiumPlusPriceId = "price_premium_plus_599"; // 5.99€
 
   @override
@@ -39,9 +40,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _subscribe(String plan, String priceId) async {
     setState(() => loading = true);
 
-    final res = await _auth.createCheckoutSession(
-      plan: plan
-    );
+    final res = await _auth.createCheckoutSession(plan: plan);
 
     setState(() => loading = false);
 
@@ -53,13 +52,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     final url = res["data"]["checkoutUrl"];
     if (url == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("URL Stripe introuvable.")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("URL Stripe introuvable.")));
       return;
     }
 
-    // Ouvre Stripe Checkout
-    // ignore: use_build_context_synchronously
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -83,8 +80,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Abonnement annulé.")));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Abonnement annulé.")));
 
     _loadSubscription();
   }
@@ -92,78 +89,96 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // -------------------------------
+      // APPBAR + RETOUR
+      // -------------------------------
       appBar: AppBar(
         title: const Text("Abonnements"),
         backgroundColor: AppTheme.primaryTeal,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
+
       body: Container(
         decoration: AppTheme.mainGradient,
-        child: loading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              )
-            : _buildContent(),
-      ),
-    );
-  }
+        child: SafeArea(
+          child: loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                )
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Column(
+                            children: [
+                              // AFFICHAGE
+                              subscription?["active"] == true
+                                  ? _buildActivePlan(subscription?["plan"])
+                                  : _buildAvailablePlans(),
 
-  Widget _buildContent() {
-    final active = subscription?["active"] == true;
-    final plan = subscription?["plan"];
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        children: [
-          const SizedBox(height: 20),
-
-          if (active)
-            _buildActivePlan(plan)
-          else
-            _buildAvailablePlans(),
-
-          const SizedBox(height: 40),
-        ],
+                              const SizedBox(height: 40),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
       ),
     );
   }
 
   // ----------------------------------------------------------
-  // AFFICHAGE SI L’UTILISATEUR A UN ABONNEMENT ACTIF
+  // ABONNEMENT ACTIF
   // ----------------------------------------------------------
   Widget _buildActivePlan(String? plan) {
     final isPlus = plan == "premium_plus";
 
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.12),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          Text(
-            "Abonnement actif",
-            style: const TextStyle(
-                color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            isPlus ? "Premium Plus" : "Premium",
-            style: const TextStyle(color: Colors.white70, fontSize: 18),
-          ),
-          const SizedBox(height: 20),
-          AppTheme.gradientButton(
-            text: "Annuler l'abonnement",
-            onPressed: _cancelSubscription,
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(.12),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          children: [
+            const Text(
+              "Abonnement actif",
+              style: TextStyle(
+                  color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            Text(
+              isPlus ? "Premium Plus" : "Premium",
+              style: const TextStyle(color: Colors.white70, fontSize: 18),
+            ),
+
+            const SizedBox(height: 20),
+
+            AppTheme.gradientButton(
+              text: "Annuler l'abonnement",
+              onPressed: _cancelSubscription,
+            )
+          ],
+        ),
       ),
     );
   }
 
   // ----------------------------------------------------------
-  // LISTE DES OFFRES (PREMIUM & PREMIUM PLUS)
+  // LISTE DES OFFRES
   // ----------------------------------------------------------
   Widget _buildAvailablePlans() {
     return Column(
@@ -176,6 +191,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           onPressed: () => _subscribe("premium", premiumPriceId),
         ),
         const SizedBox(height: 22),
+
         _buildPlanCard(
           title: "Premium Plus",
           price: "5.99 €/mois",
@@ -188,6 +204,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
+  // ----------------------------------------------------------
+  // CARD D’UN PLAN
+  // ----------------------------------------------------------
   Widget _buildPlanCard({
     required String title,
     required String price,
@@ -195,43 +214,57 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     required VoidCallback onPressed,
     bool highlight = false,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: highlight
-            ? Colors.white.withOpacity(.18)
-            : Colors.white.withOpacity(.12),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: highlight ? Colors.amber : Colors.white24,
-          width: highlight ? 2 : 1,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: highlight
+              ? Colors.white.withOpacity(.18)
+              : Colors.white.withOpacity(.12),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: highlight ? Colors.amber : Colors.white24,
+            width: highlight ? 2 : 1,
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            price,
-            style: const TextStyle(color: Colors.white70, fontSize: 18),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            description,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 20),
-          AppTheme.gradientButton(text: "S'abonner", onPressed: onPressed),
-        ],
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+
+            Text(
+              price,
+              style: const TextStyle(color: Colors.white70, fontSize: 18),
+            ),
+
+            const SizedBox(height: 14),
+
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
+
+            const SizedBox(height: 20),
+
+            AppTheme.gradientButton(
+              text: "S'abonner",
+              onPressed: onPressed,
+            )
+          ],
+        ),
       ),
     );
   }
 }
+
 
 // ----------------------------------------------------------
 // WEBVIEW CHECKOUT (STRIPE)
