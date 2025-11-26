@@ -6,7 +6,7 @@ class AuthRepository {
   final ApiClient _api = ApiClient();
 
   // ----------------------------------------------------------
-  // Save tokens to secure storage
+  // Save tokens
   // ----------------------------------------------------------
   Future<void> _saveTokens(String? token, String? refreshToken) async {
     if (token != null) {
@@ -21,7 +21,10 @@ class AuthRepository {
   // REGISTER
   // ----------------------------------------------------------
   Future<Map<String, dynamic>> register(
-      String name, String email, String password) async {
+    String name,
+    String email,
+    String password,
+  ) async {
     try {
       final res = await _api.dio.post(
         "/auth/register",
@@ -51,45 +54,32 @@ class AuthRepository {
     try {
       final res = await _api.dio.post(
         "/auth/login",
-        data: {
-          "email": email,
-          "password": password,
-        },
+        data: {"email": email, "password": password},
       );
 
       final data = res.data;
-      final token = data["token"];
-      final refreshToken = data["refreshToken"];
-
-      await _saveTokens(token, refreshToken);
+      await _saveTokens(data["token"], data["refreshToken"]);
 
       return {"ok": true, "data": data};
     } on DioException catch (e) {
-      return {
-        "ok": false,
-        "error": e.response?.data["message"] ?? e.message
-      };
+      return {"ok": false, "error": e.response?.data["message"] ?? e.message};
     }
   }
 
   // ----------------------------------------------------------
-  // GET AUTHENTICATED USER
+  // GET ME
   // ----------------------------------------------------------
   Future<Map<String, dynamic>> getMe() async {
     try {
       final res = await _api.dio.get("/auth/me");
-
       return {"ok": true, "data": res.data};
     } on DioException catch (e) {
-      return {
-        "ok": false,
-        "error": e.response?.data ?? e.message
-      };
+      return {"ok": false, "error": e.response?.data ?? e.message};
     }
   }
 
   // ----------------------------------------------------------
-  // FORGOT PASSWORD (email link)
+  // FORGOT PASSWORD
   // ----------------------------------------------------------
   Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
@@ -110,7 +100,7 @@ class AuthRepository {
   }
 
   // ----------------------------------------------------------
-  // RESET PASSWORD (authenticated user)
+  // RESET PASSWORD (Authenticated)
   // ----------------------------------------------------------
   Future<Map<String, dynamic>> resetPassword(String newPassword) async {
     try {
@@ -126,7 +116,7 @@ class AuthRepository {
   }
 
   // ----------------------------------------------------------
-  // RESET PASSWORD via token (forgot link)
+  // RESET PASSWORD with Token
   // ----------------------------------------------------------
   Future<Map<String, dynamic>> resetPasswordWithToken(
       String token, String newPassword) async {
@@ -146,7 +136,7 @@ class AuthRepository {
   }
 
   // ----------------------------------------------------------
-  // CHANGE PASSWORD (user authenticated)
+  // CHANGE PASSWORD
   // ----------------------------------------------------------
   Future<Map<String, dynamic>> changePassword(
       String oldPassword, String newPassword) async {
@@ -169,7 +159,7 @@ class AuthRepository {
   }
 
   // ----------------------------------------------------------
-  // UPLOAD PHOTO (avatar)
+  // UPLOAD AVATAR
   // ----------------------------------------------------------
   Future<Map<String, dynamic>> uploadAvatar(String filePath) async {
     try {
@@ -189,10 +179,12 @@ class AuthRepository {
   }
 
   // ----------------------------------------------------------
-  // UPDATE PROFILE (name and photo)
+  // UPDATE PROFILE
   // ----------------------------------------------------------
-  Future<Map<String, dynamic>> updateProfile(
-      {String? name, String? photoUrl}) async {
+  Future<Map<String, dynamic>> updateProfile({
+    String? name,
+    String? photoUrl,
+  }) async {
     try {
       final res = await _api.dio.put(
         "/user/update",
@@ -223,10 +215,7 @@ class AuthRepository {
         data: {"refreshToken": rt},
       );
 
-      final token = res.data["token"];
-      final newRefresh = res.data["refreshToken"];
-
-      await _saveTokens(token, newRefresh);
+      await _saveTokens(res.data["token"], res.data["refreshToken"]);
 
       return {"ok": true, "data": res.data};
     } on DioException catch (e) {
@@ -240,7 +229,6 @@ class AuthRepository {
   Future<void> logout() async {
     try {
       final rt = await _api.storage.read(key: "refresh_token");
-
       if (rt != null) {
         await _api.dio.post("/auth/logout", data: {"refreshToken": rt});
       }
@@ -251,56 +239,53 @@ class AuthRepository {
   }
 
   // ----------------------------------------------------------
-  // CLEAR ALL TOKENS
+  // SUBSCRIPTION STATUS — now includes TRIAL INFO
   // ----------------------------------------------------------
-  Future<void> clearStorage() async {
-    await _api.storage.deleteAll();
+  Future<Map<String, dynamic>> getSubscriptionStatus() async {
+    try {
+      final res = await _api.dio.get("/subscription/status");
+
+      final data = res.data;
+
+      // Data returned may include trial fields:
+      // isTrialing, trialStart, trialEnd, currentPeriodEnd, subscriptionLevel
+
+      return {"ok": true, "data": data};
+    } on DioException catch (e) {
+      return {"ok": false, "error": e.response?.data ?? e.message};
+    }
   }
 
   // ----------------------------------------------------------
-// GET SUBSCRIPTION STATUS
-// ----------------------------------------------------------
-Future<Map<String, dynamic>> getSubscriptionStatus() async {
-  try {
-    final res = await _api.dio.get("/subscription/status");
-    return {"ok": true, "data": res.data};
-  } on DioException catch (e) {
-    return {"ok": false, "error": e.response?.data ?? e.message};
+  // CREATE CHECKOUT SESSION (Stripe)
+  // ----------------------------------------------------------
+  Future<Map<String, dynamic>> createCheckoutSession({
+    required String plan,
+  }) async {
+    try {
+      final res = await _api.dio.post(
+        "/subscription/checkout",
+        data: {"plan": plan}, // premium | premium_plus
+      );
+
+      return {"ok": true, "data": res.data};
+    } on DioException catch (e) {
+      return {"ok": false, "error": e.response?.data ?? e.message};
+    }
   }
-}
 
-// ----------------------------------------------------------
-// CREATE CHECKOUT SESSION (Stripe)
-// ----------------------------------------------------------
-Future<Map<String, dynamic>> createCheckoutSession({
-  required String plan,
-}) async {
-  try {
-    final res = await _api.dio.post(
-      "/subscription/checkout",
-      data: {"plan": plan}, // premium | premium_plus
-    );
+  // ----------------------------------------------------------
+  // CANCEL SUBSCRIPTION
+  // ----------------------------------------------------------
+  Future<Map<String, dynamic>> cancelSubscription() async {
+    try {
+      final res = await _api.dio.post("/subscription/cancel");
 
-    return {"ok": true, "data": res.data};
-  } on DioException catch (e) {
-    return {"ok": false, "error": e.response?.data ?? e.message};
+      return {"ok": true, "data": res.data};
+    } on DioException catch (e) {
+      return {"ok": false, "error": e.response?.data ?? e.message};
+    }
   }
-}
-
-// ----------------------------------------------------------
-// CANCEL SUBSCRIPTION
-// ----------------------------------------------------------
-Future<Map<String, dynamic>> cancelSubscription() async {
-  try {
-    final res = await _api.dio.post("/subscription/cancel");
-    return {"ok": true, "data": res.data};
-  } on DioException catch (e) {
-    return {"ok": false, "error": e.response?.data ?? e.message};
-  }
-}
-
-
-
 }
 
 

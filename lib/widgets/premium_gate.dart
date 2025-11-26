@@ -12,25 +12,35 @@ class PremiumGate extends StatefulWidget {
 
 class _PremiumGateState extends State<PremiumGate> {
   final AuthRepository _auth = AuthRepository();
-  bool? isPremium;
+
   bool loading = true;
+  bool isAllowed = false; // premium || premium_plus || trial
 
   @override
   void initState() {
     super.initState();
-    _check();
+    _checkAccess();
   }
 
-  Future<void> _check() async {
-    final r = await _auth.getSubscriptionStatus();
-    if (r["ok"]) {
+  Future<void> _checkAccess() async {
+    final res = await _auth.getSubscriptionStatus();
+
+    if (!mounted) return;
+
+    if (res["ok"]) {
+      final data = res["data"];
+
+      final bool isPremium = data["isPremium"] == true;
+      final bool isPremiumPlus = data["isPremiumPlus"] == true;
+      final bool trialActive = data["trialActive"] == true;
+
       setState(() {
-        isPremium = r["data"]["isPremium"] == true;
+        isAllowed = isPremium || isPremiumPlus || trialActive;
         loading = false;
       });
     } else {
       setState(() {
-        isPremium = false;
+        isAllowed = false;
         loading = false;
       });
     }
@@ -38,20 +48,59 @@ class _PremiumGateState extends State<PremiumGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return const Center(child: CircularProgressIndicator());
-    if (isPremium == true) return widget.child;
+    if (loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
 
-    // paywall
+    if (isAllowed) return widget.child;
+
+    // ----------------------------------------------------------
+    // PAYWALL si pas premium et pas en trial
+    // ----------------------------------------------------------
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text("Fonctionnalité Premium", style: TextStyle(fontSize: 18)),
-          const SizedBox(height: 12),
+          const Icon(Icons.lock, size: 75, color: Colors.white70),
+          const SizedBox(height: 14),
+
+          const Text(
+            "Fonctionnalité Premium",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              "Débloquez cette fonctionnalité en devenant Premium ou utilisez votre essai gratuit.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
           ElevatedButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen())),
-            child: const Text("Passer à Premium"),
-          )
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black87,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+              );
+            },
+            child: const Text("Débloquer Premium"),
+          ),
         ],
       ),
     );
