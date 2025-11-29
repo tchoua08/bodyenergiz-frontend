@@ -32,10 +32,26 @@ class _PremiumGateState extends State<PremiumGate> {
 
       final bool isPremium = data["isPremium"] == true;
       final bool isPremiumPlus = data["isPremiumPlus"] == true;
-      final bool trialActive = data["trialActive"] == true;
+      final bool trialActiveFlag = data["trialActive"] == true;
+
+      // --------- Calcul du trial à partir de trialEnd ----------
+      bool trialValid = false;
+      final trialEndString = data["trialEnd"];
+
+      if (trialEndString != null) {
+        final trialEnd = DateTime.tryParse(trialEndString);
+        if (trialEnd != null && trialEnd.isAfter(DateTime.now())) {
+          trialValid = true;
+        }
+      }
 
       setState(() {
-        isAllowed = isPremium || isPremiumPlus || trialActive;
+        // 🔓 Accès si :
+        // - Premium
+        // - OU Premium Plus
+        // - OU backend indique trialActive = true
+        // - OU trialEnd encore dans le futur
+        isAllowed = isPremium || isPremiumPlus || trialActiveFlag || trialValid;
         loading = false;
       });
     } else {
@@ -80,7 +96,7 @@ class _PremiumGateState extends State<PremiumGate> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              "Débloquez cette fonctionnalité en devenant Premium ou utilisez votre essai gratuit.",
+              "Débloquez cette fonctionnalité en devenant Premium ou en activant votre essai gratuit.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70),
             ),
@@ -96,7 +112,9 @@ class _PremiumGateState extends State<PremiumGate> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const SubscriptionScreen(),
+                ),
               );
             },
             child: const Text("Débloquer Premium"),

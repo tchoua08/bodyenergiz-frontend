@@ -46,14 +46,37 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
   }
 
   // ----------------------------------------------------------
-  // Vérifie abonnement avant d'initialiser le scanner
+  // Vérifie abonnement ou trial
   // ----------------------------------------------------------
   Future<void> _checkSubscriptionThenInit() async {
-    final plan = await _auth.getSubscriptionStatus();
+    final res = await _auth.getSubscriptionStatus();
+
+    bool isPremium = false;
+    bool isPremiumPlus = false;
+    bool trialValid = false;
+    bool trialActiveFlag = false;
+
+    if (res["ok"]) {
+      final data = res["data"];
+
+      isPremium = data["isPremium"] == true;
+      isPremiumPlus = data["isPremiumPlus"] == true;
+
+      trialActiveFlag = data["trialActive"] == true;
+
+      // Vérification trialEnd
+      final trialEndString = data["trialEnd"];
+      if (trialEndString != null) {
+        final trialEnd = DateTime.tryParse(trialEndString);
+        if (trialEnd != null && trialEnd.isAfter(DateTime.now())) {
+          trialValid = true;
+        }
+      }
+    }
 
     setState(() {
+      allowedScan = isPremium || isPremiumPlus || trialActiveFlag || trialValid;
       checkingPlan = false;
-      allowedScan = plan["ok"] && plan["data"]["active"] == true;
     });
 
     if (allowedScan) {
@@ -95,7 +118,7 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
   }
 
   // ----------------------------------------------------------
-  // Traitement d'image caméra → PPG
+  // Traitement image → PPG
   // ----------------------------------------------------------
   void _processCameraImage(CameraImage image) {
     try {
@@ -110,6 +133,7 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
         sum += bytes[i];
         count++;
       }
+
       final avg = count > 0 ? sum / count : 0.0;
       final now = DateTime.now().millisecondsSinceEpoch;
 
@@ -123,7 +147,7 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
   }
 
   // ----------------------------------------------------------
-  // Démarrage du SCAN
+  // Lancement du Scan
   // ----------------------------------------------------------
   void _startScan() {
     _ppg.reset();
@@ -140,9 +164,7 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
 
       final bpm = _ppg.estimateBpm();
       final movement = _vibration;
-
-      final fusion =
-          EnergyFusion.computeScores(bpm: bpm, movement: movement);
+      final fusion = EnergyFusion.computeScores(bpm: bpm, movement: movement);
 
       final result = EnergyResult(
         bpm: bpm,
@@ -151,7 +173,6 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
         auraColor: fusion['auraColor'],
       );
 
-      // SAVE
       await _scanRepo.saveScan(
         bpm: result.bpm,
         movement: result.movement,
@@ -173,7 +194,7 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
   }
 
   // ----------------------------------------------------------
-  // UI Premium lock
+  // UI NON AUTORISÉE (paywall)
   // ----------------------------------------------------------
   Widget _buildLockedUI() {
     return Container(
@@ -184,55 +205,67 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
         children: [
           Image.asset("images/logo.png", height: 110),
           const SizedBox(height: 20),
+
           const Text(
             "Débloque le Scan d’Aura",
             style: TextStyle(
                 fontSize: 26, color: Colors.white, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
+
           const SizedBox(height: 12),
+
           const Text(
-            "Analyse complète du BPM, vibrations, couleurs d’aura, et conseils IA.",
+            "Profite de ton essai gratuit de 7 jours pour analyser ton énergie, vibrations et aura.",
             style: TextStyle(color: Colors.white70),
             textAlign: TextAlign.center,
           ),
+
           const SizedBox(height: 35),
 
-          // PREMIUM
           AppTheme.gradientButton(
-            text: "Premium – 2.99€ / mois",
+            text: "Débloquer Premium",
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+              );
             },
           ),
+
           const SizedBox(height: 15),
 
-          // PREMIUM PLUS
           AppTheme.gradientButton(
-            text: "Premium Plus – 5.99€ / mois",
+            text: "Premium Plus – Max Avantages",
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+              );
             },
           ),
 
           const SizedBox(height: 20),
+
           TextButton(
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+              );
             },
-            child: const Text("Voir les avantages",
-                style: TextStyle(color: Colors.white70)),
-          ),
+            child: const Text(
+              "Voir les détails",
+              style: TextStyle(color: Colors.white70),
+            ),
+          )
         ],
       ),
     );
   }
 
   // ----------------------------------------------------------
-  // UI SCANNER
+  // UI Scanner
   // ----------------------------------------------------------
   Widget _scannerUI() {
     return Container(
@@ -249,11 +282,10 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
               style: const TextStyle(color: Colors.white70)),
           const SizedBox(height: 8),
           Text(
-              'BPM actuel: ${_lastBpm > 0 ? _lastBpm.toStringAsFixed(1) : "--"}',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold)),
+            'BPM actuel: ${_lastBpm > 0 ? _lastBpm.toStringAsFixed(1) : "--"}',
+            style: const TextStyle(
+                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 14),
           AppTheme.gradientButton(
             text: _scanning ? 'Scan...' : 'Démarrer le scan (12s)',
@@ -266,7 +298,7 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
   }
 
   // ----------------------------------------------------------
-  // WIDGET CAMERA
+  // Camera Widget
   // ----------------------------------------------------------
   Widget _cameraPreviewWidget() {
     if (_controller == null || !_controller!.value.isInitialized) {
