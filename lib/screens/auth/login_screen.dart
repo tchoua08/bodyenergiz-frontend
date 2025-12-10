@@ -8,6 +8,7 @@ import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -22,11 +23,16 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
     final res = await _repo.login(_email.text.trim(), _pass.text.trim());
     setState(() => _loading = false);
+
     if (res['ok']) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainNavigation()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
+      );
     } else {
-      final err = res['error'];
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res['error'].toString())),
+      );
     }
   }
 
@@ -34,24 +40,104 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: LinearGradient(colors: [AppTheme.primaryTeal, AppTheme.darkBlue], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppTheme.primaryTeal, AppTheme.darkBlue],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Column(children: [
-               Image.asset('images/logo.png', width: 120),
-              const SizedBox(height: 20),
-              const Text("Connexion", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              AuthInput(controller: _email, hint: "Email", icon: Icons.email),
-              const SizedBox(height: 12),
-              AuthInput(controller: _pass, hint: "Mot de passe", icon: Icons.lock, obscure: true),
-              const SizedBox(height: 12),
-              AppTheme.gradientButton(text: _loading ? 'Connexion...' : 'Se connecter', onPressed: _loading ? null : _login),
-              const SizedBox(height: 10),
-              TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())), child: const Text("Créer un compte", style: TextStyle(color: Colors.white))),
-              TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())), child: const Text("Mot de passe oublié ?", style: TextStyle(color: Colors.white70))),
-            ]),
+            child: Column(
+              children: [
+                // -------------------------------
+                // LOGO
+                // -------------------------------
+                Image.asset('images/logo.png', width: 120),
+
+                const SizedBox(height: 12),
+
+                // -------------------------------
+                // TEXT JUST UNDER LOGO
+                // -------------------------------
+                const Text(
+                  "Sauvons de l'énergie",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // -------------------------------
+                // TITLE
+                // -------------------------------
+                const Text(
+                  "Connexion",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // -------------------------------
+                // FORM INPUTS
+                // -------------------------------
+                AuthInput(controller: _email, hint: "Email", icon: Icons.email),
+                const SizedBox(height: 12),
+
+                AuthInput(
+                  controller: _pass,
+                  hint: "Mot de passe",
+                  icon: Icons.lock,
+                  obscure: true,
+                ),
+
+                const SizedBox(height: 18),
+
+                // -------------------------------
+                // LOGIN BUTTON
+                // -------------------------------
+                AppTheme.gradientButton(
+                  text: _loading ? "Connexion..." : "Se connecter",
+                  onPressed: _loading ? null : _login,
+                ),
+
+                const SizedBox(height: 16),
+
+                // -------------------------------
+                // LINKS
+                // -------------------------------
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                  ),
+                  child: const Text(
+                    "Créer un compte",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                  ),
+                  child: const Text(
+                    "Mot de passe oublié ?",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

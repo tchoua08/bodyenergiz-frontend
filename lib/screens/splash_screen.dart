@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
               return Image.asset('images/logo.png', width: 180);
             }),
             const SizedBox(height: 16),
-            const Text('BodyEnergiz', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text('Let\\`s save energy by BodyEnergiz', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
           ]),
         ),
       ),

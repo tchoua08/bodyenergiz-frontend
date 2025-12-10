@@ -51,7 +51,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 18),
 
             const Text(
-              "Place ton doigt sur la caméra arrière pour une mesure PPG.",
+              "Place ton doigt sur la caméra arrière",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70),
             ),
