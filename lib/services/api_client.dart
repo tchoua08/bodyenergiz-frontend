@@ -8,10 +8,11 @@ class ApiClient {
 
   ApiClient() {
     // 🔥 Auto select correct base URL
-    String base = "http://127.0.0.1:3000/api";
+    String base = "https://bodyenergiz-backend.onrender.com:3000/api";
 
     if (Platform.isAndroid) {
-      base = "http://10.0.2.2:3000/api";
+     // base = "http://10.0.2.2:3000/api";
+     base = "https://bodyenergiz-backend.onrender.com:3000/api";
     }
 
     dio = Dio(
