@@ -62,7 +62,7 @@ class _AuraScanScreenState extends State<AuraScanScreen> {
       isPremium = data["isPremium"] == true;
       isPremiumPlus = data["isPremiumPlus"] == true;
 
-      trialActiveFlag = data["trialActive"] == true;
+      trialActiveFlag = data["isTrialing"] == true;
 
       // Vérification trialEnd
       final trialEndString = data["trialEnd"];

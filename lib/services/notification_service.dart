@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -26,9 +28,8 @@ class NotificationService {
       body,
       scheduled,
       const NotificationDetails(android: AndroidNotificationDetails('bodyenergiz_reminder', 'Rappels', channelDescription: 'Rappels journaliers')),
-      androidAllowWhileIdle: true,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
+      matchDateTimeComponents: DateTimeComponents.time, androidScheduleMode:AndroidScheduleMode.exact,
     );
   }
 }

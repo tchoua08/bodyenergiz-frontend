@@ -34,7 +34,7 @@ class _PremiumGateState extends State<PremiumGate> {
       });
       return;
     }
-
+     print("res: $res");
     final data = (res["data"] ?? {}) as Map<String, dynamic>;
 
     // ----------------------------------------------------------
@@ -42,7 +42,7 @@ class _PremiumGateState extends State<PremiumGate> {
     // ----------------------------------------------------------
     bool isPremium = data["isPremium"] == true;
     bool isPremiumPlus = data["isPremiumPlus"] == true;
-
+     
     // ----------------------------------------------------------
     // 2) Lecture d'un éventuel objet "subscription"
     //    { active: bool, plan: "premium" | "premium_plus", trialEndsAt: Date }
@@ -63,12 +63,12 @@ class _PremiumGateState extends State<PremiumGate> {
     }
 
     // ----------------------------------------------------------
-    // 3) Gestion du TRIAL (trialActive + trialEnd / trialEndsAt)
+    // 3) Gestion du TRIAL (isTrialing + trialEnd / trialEndsAt)
     // ----------------------------------------------------------
     bool trialValid = false;
 
     // a) champ booléen direct (backend moderne)
-    final bool trialFlag = data["trialActive"] == true;
+    final bool trialFlag = data["isTrialing"] == true;
 
     // b) date de fin de trial (backend renvoie trialEnd ou subscription.trialEndsAt)
     String? trialEndString;

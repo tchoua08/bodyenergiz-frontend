@@ -287,38 +287,56 @@ class WebViewCheckout extends StatefulWidget {
 }
 
 class _WebViewCheckoutState extends State<WebViewCheckout> {
+  late final WebViewController _controller;
   bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (mounted) {
+              setState(() => loading = false);
+            }
+          },
+
+          // 👉 OPTIONNEL : détecter retour Stripe
+          onNavigationRequest: (request) {
+            if (request.url.contains("success")) {
+              Navigator.pop(context, true); // paiement OK
+              return NavigationDecision.prevent;
+            }
+
+            if (request.url.contains("cancel")) {
+              Navigator.pop(context, false); // paiement annulé
+              return NavigationDecision.prevent;
+            }
+
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Paiement sécurisé"),
-        backgroundColor: AppTheme.primaryTeal,
-      ),
+      appBar: AppBar(title: const Text("Paiement sécurisé")),
       body: Stack(
         children: [
-          WebViewWidget(
-            controller: WebViewController()
-              ..setJavaScriptMode(JavaScriptMode.unrestricted)
-              ..loadRequest(Uri.parse(widget.url))
-              ..setNavigationDelegate(
-                NavigationDelegate(
-                  onPageFinished: (_) {
-                    setState(() => loading = false);
-                  },
-                ),
-              ),
-          ),
+          WebViewWidget(controller: _controller),
 
           if (loading)
             const Center(
-              child: CircularProgressIndicator(color: Colors.white),
+              child: CircularProgressIndicator(),
             ),
         ],
       ),
     );
   }
 }
-
-

@@ -15,7 +15,7 @@ class PersonalizedAdviceScreen extends StatefulWidget {
 }
 
 class _PersonalizedAdviceScreenState extends State<PersonalizedAdviceScreen> {
-  final AIRepository _ai = AIRepository();
+  final AiRepository _ai = AiRepository();
 
   bool loading = true;
   String? advice;
@@ -29,8 +29,7 @@ class _PersonalizedAdviceScreenState extends State<PersonalizedAdviceScreen> {
   }
 
   Future<void> _loadAdvice() async {
-    final resp = await _ai.generateAdvice(widget.result);
-
+    final resp = await _ai.generateAdvice(aura:widget.result.auraColor,energyScore:widget.result.energyScore,bpm:widget.result.bpm);
     if (resp["ok"]) {
       setState(() {
         advice = resp["data"]["advice"];
